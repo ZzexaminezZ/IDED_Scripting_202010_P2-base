@@ -1,62 +1,67 @@
 ﻿using UnityEngine;
+using System;
+
 
 [RequireComponent(typeof(Collider))]
-public class Target : MonoBehaviour
+public class Target : Entidad, I_pooler
 {
-    private const float TIME_TO_DESTROY = 10F;
 
+    Rigidbody Bala_rigidbody;
     [SerializeField]
     private int maxHP = 1;
+
+   
+     Player player;
 
     private int currentHP;
 
     [SerializeField]
     private int scoreAdd = 10;
 
+   
+    
+    public void  inicializar (Player _ref)
+    {
+        player = _ref;
+    }
     private void Start()
     {
         currentHP = maxHP;
-        Destroy(gameObject, TIME_TO_DESTROY);
+       
+    }
+
+    private void Awake()
+    {
+        Bala_rigidbody = GetComponent<Rigidbody>();
     }
 
     private void OnCollisionEnter(Collision collision)
     {
         int collidedObjectLayer = collision.gameObject.layer;
 
-        if (collidedObjectLayer.Equals(Utils.BulletLayer))
-        {
-            Destroy(collision.gameObject);
-
-            currentHP -= 1;
-
-            if (currentHP <= 0)
-            {
-                Player player = FindObjectOfType<Player>();
-
-                if (player != null)
-                {
-                    player.Score += scoreAdd;
-                }
-
-                Destroy(gameObject);
-            }
-        }
-        else if (collidedObjectLayer.Equals(Utils.PlayerLayer) ||
+        if (collidedObjectLayer.Equals(Utils.PlayerLayer) ||
             collidedObjectLayer.Equals(Utils.KillVolumeLayer))
         {
-            Player player = FindObjectOfType<Player>();
+            player.Daño();
+            Pool.instance.ReturnTargetToPool(this);
 
-            if (player != null)
-            {
-                player.Lives -= 1;
-
-                if (player.Lives <= 0 && player.OnPlayerDied != null)
-                {
-                    player.OnPlayerDied();
-                }
-            }
-
-            Destroy(gameObject);
         }
+    }
+
+    public override void Daño()
+    {
+        currentHP -= 1;
+        if (currentHP <= 0)
+        {
+            player.SumarScore(scoreAdd);
+            Pool.instance.ReturnTargetToPool(this);
+        }
+       
+    }
+
+    public void Ingresar()
+    {
+        currentHP = maxHP;
+        Bala_rigidbody.velocity = Vector3.zero;
     }
 }

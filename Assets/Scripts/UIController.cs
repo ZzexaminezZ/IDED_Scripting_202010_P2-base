@@ -4,7 +4,9 @@ using UnityEngine.UI;
 
 public class UIController : MonoBehaviour
 {
-    private Player playerRef;
+    
+
+    [SerializeField] Player player;
 
     [SerializeField]
     private Image[] lifeImages;
@@ -15,8 +17,6 @@ public class UIController : MonoBehaviour
     [SerializeField]
     private Button restartBtn;
 
-    [SerializeField]
-    private float tickRate = 0.2F;
 
     public void Restart()
     {
@@ -28,12 +28,13 @@ public class UIController : MonoBehaviour
     {
         ToggleRestartButton(false);
 
-        playerRef = FindObjectOfType<Player>();
-
-        if (playerRef != null && lifeImages.Length == Player.PLAYER_LIVES)
-        {
-            InvokeRepeating("UpdateUI", 0F, tickRate);
-        }
+        player._OnPlayerScoreChanged += ActualizarScore;
+        player._OnPlayerHit += ActualizarVidas;
+        player._OnPlayerDied += MuerteJugador;
+        
+       
+        
+      
     }
 
     private void ToggleRestartButton(bool val)
@@ -44,31 +45,34 @@ public class UIController : MonoBehaviour
         }
     }
 
-    private void UpdateUI()
+    private void ActualizarVidas(int _vidas)
     {
-        for (int i = 0; i < lifeImages.Length; i++)
+        if (scoreLabel || lifeImages == null)
         {
-            if (lifeImages[i] != null && lifeImages[i].enabled)
+            if (_vidas <= 0)
             {
-                lifeImages[i].gameObject.SetActive(playerRef.Lives >= i + 1);
+                scoreLabel.text = "Game over";
+            }
+
+            for (int i = 0; i < lifeImages.Length; i++)
+            {
+                lifeImages[i].enabled = i < _vidas;
             }
         }
 
+        
+    }
+    private void ActualizarScore(int _score)
+    {
         if (scoreLabel != null)
         {
-            scoreLabel.text = playerRef.Score.ToString();
+            scoreLabel.text = _score.ToString();
         }
-
-        if (playerRef.Lives <= 0)
-        {
-            CancelInvoke();
-
-            if (scoreLabel != null)
-            {
-                scoreLabel.text = "Game Over";
-            }
-
-            ToggleRestartButton(true);
-        }
+        
+    }
+    
+    private void MuerteJugador()
+    {
+        ToggleRestartButton(true);
     }
 }

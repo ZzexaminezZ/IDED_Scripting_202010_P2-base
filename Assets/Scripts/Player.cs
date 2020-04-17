@@ -2,8 +2,13 @@
 using UnityEngine;
 
 [RequireComponent(typeof(Collider))]
-public class Player : MonoBehaviour
+public class Player : Entidad
 {
+
+    public Action _OnPlayerDied;
+    public Action<int> _OnPlayerHit;
+    public Action<int> _OnPlayerScoreChanged;
+
     public const int PLAYER_LIVES = 3;
 
     private const float PLAYER_RADIUS = 0.4F;
@@ -23,8 +28,6 @@ public class Player : MonoBehaviour
     [SerializeField]
     private Transform bulletSpawnPoint;
 
-    [SerializeField]
-    private float bulletSpeed = 3F;
 
     #endregion Bullet
 
@@ -38,8 +41,8 @@ public class Player : MonoBehaviour
 
     #region StatsProperties
 
-    public int Score { get; set; }
-    public int Lives { get; set; }
+    private int Score { get; set; }
+    private int Lives { get; set; }
 
     #endregion StatsProperties
 
@@ -65,9 +68,10 @@ public class Player : MonoBehaviour
 
     #endregion MovementProperties
 
-    public Action OnPlayerDied;
-
+   
     // Start is called before the first frame update
+
+    
     private void Start()
     {
         leftCameraBound = Camera.main.ViewportToWorldPoint(new Vector3(
@@ -77,33 +81,68 @@ public class Player : MonoBehaviour
             1F, 0F, 0F)).x - PLAYER_RADIUS;
 
         Lives = PLAYER_LIVES;
+
+        
     }
+
+
 
     // Update is called once per frame
     private void Update()
     {
+
+
         if (Lives <= 0)
         {
-            this.enabled = false;
+            
             gameObject.SetActive(false);
+            
         }
         else
         {
-            hVal = Input.GetAxis("Horizontal");
+            Movimiento();
+            Disparo();
 
-            if (ShouldMove)
-            {
-                transform.Translate(transform.right * hVal * moveSpeed * Time.deltaTime);
-                referencePointComponent = transform.position.x;
-            }
-
-            if ((Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
-                && CanShoot)
-            {
-                Instantiate<Rigidbody>
-                   (bullet, bulletSpawnPoint.position, bulletSpawnPoint.rotation)
-                   .AddForce(transform.up * bulletSpeed, ForceMode.Impulse);
-            }
         }
     }
+    public override void  Daño()
+    {
+        Lives -= 1;
+        _OnPlayerHit?.Invoke(Lives);
+        if (Lives == 0)
+        {
+            _OnPlayerDied?.Invoke();
+        }
+    }
+    void Movimiento()
+    {
+        hVal = Input.GetAxis("Horizontal");
+
+        if (ShouldMove)
+        {
+            transform.Translate(transform.right * hVal * moveSpeed * Time.deltaTime);
+            referencePointComponent = transform.position.x;
+        }
+    }
+
+    void Disparo()
+    {
+
+        if ((Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
+            && CanShoot)
+        {
+            Pool.instance.RequestBullet(bulletSpawnPoint);
+        }
+    }
+
+
+
+    public void SumarScore(int _score)
+    {
+        Score += _score;
+        _OnPlayerScoreChanged?.Invoke(Score);
+    }
 }
+
+
+    
